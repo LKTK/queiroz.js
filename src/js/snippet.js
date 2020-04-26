@@ -5,14 +5,14 @@
  * https://github.com/viniciusknob/queiroz.js
  */
 
-(function(document, Queiroz) {
+(function(window, document, Queiroz) {
 
     /* Modules */
 
     var
         mod      = Queiroz.module,
         Settings = mod.settings,
-        Kairos   = mod.kairos,
+        Kairos   = mod.kairos, // TODO remove, snippet should to create elements only
         Strings  = mod.strings,
         Style    = mod.style;
 
@@ -66,7 +66,7 @@
                 options.init();
 
                 var box = _buildTag(TagName.DIV, 'qz-box qz-box-muted qz-text-center js-has-edit-box');
-                var helpText = _buildTag(TagName.DIV, 'qz-help-text', options.helpText);
+                var helpText = _buildTag(TagName.DIV, 'qz-help-text', Strings(options.helpText));
                 var divInput = _buildTag(TagName.DIV);
                 var inputTime = _buildTag(TagName.INPUT, 'qz-input-time js-input-time');
                 var cancel = _buildTag(TagName.SPAN,'qz-fa qz-fa-sw fa fa-times');
@@ -182,6 +182,93 @@
 
                 box.appendChild(menu);
                 return box;
+            },
+            _buildReportTable = function(month) {
+                var table = _buildTag(TagName.TABLE, 'qz-table');
+                
+                var thead = _buildTag(TagName.THEAD);
+                var trhead = _buildTag(TagName.TR);
+                var thDate = _buildTag(TagName.TH);
+                var thWorked = _buildTag(TagName.TH);
+
+                thDate.textContent = 'Data';
+                thWorked.textContent = 'Realizado';
+                
+                trhead.appendChild(thDate);
+                trhead.appendChild(thWorked);
+                
+                thead.appendChild(trhead);
+                table.appendChild(thead);
+                
+                var tbody = _buildTag(TagName.TBODY);
+                
+                var options = {weekday:'short', day: '2-digit', month: 'short', year: 'numeric'};
+
+                month.weeks.forEach(week => {
+                    week.days.forEach(day => {
+                        var tr = _buildTag(TagName.TR, (day.periods.length === 0 ? 'qz-text-grey' : null));
+                        var tdDate = _buildTag(TagName.TD);
+                        var tdWorked = _buildTag(TagName.TD);
+    
+                        tdDate.textContent = day.date.toLocaleDateString('pt-BR', options).replace(/\./g,'');
+                        tdWorked.textContent = day.worked;
+                        
+                        tr.appendChild(tdDate);
+                        tr.appendChild(tdWorked);
+                        tbody.appendChild(tr);
+                    });
+
+                    // realizado na semana
+                    var tr = _buildTag(TagName.TR, 'qz-text-bold');
+                    var tdDate = _buildTag(TagName.TD);
+                    var tdWorked = _buildTag(TagName.TD);
+
+                    tdDate.textContent = 'Realizado na Semana';
+                    tdWorked.textContent = week.worked;
+                    
+                    tr.appendChild(tdDate);
+                    tr.appendChild(tdWorked);
+                    tbody.appendChild(tr);
+
+                    // saldo da semana
+                    tr = _buildTag(TagName.TR, 'qz-text-bold');
+                    tdDate = _buildTag(TagName.TD);
+                    tdWorked = _buildTag(TagName.TD);
+
+                    tdDate.textContent = 'Saldo da Semana';
+                    tdWorked.textContent = 'Em breve...';
+                    
+                    tr.appendChild(tdDate);
+                    tr.appendChild(tdWorked);
+                    tbody.appendChild(tr);
+
+                    // blank line
+                    tr = _buildTag(TagName.TR);
+                    tdDate = _buildTag(TagName.TD);
+                    tdWorked = _buildTag(TagName.TD);
+
+                    tdDate.textContent = '';
+                    tdWorked.textContent = '-';
+                    
+                    tr.appendChild(tdDate);
+                    tr.appendChild(tdWorked);
+                    tbody.appendChild(tr);
+                });
+
+                // realizado no mês
+                var tr = _buildTag(TagName.TR, 'qz-text-bold');
+                var tdDate = _buildTag(TagName.TD);
+                var tdWorked = _buildTag(TagName.TD);
+
+                tdDate.textContent = 'Realizado no Mês';
+                tdWorked.textContent = month.worked;
+                
+                tr.appendChild(tdDate);
+                tr.appendChild(tdWorked);
+                tbody.appendChild(tr);
+                
+                table.appendChild(tbody);
+                return table;
             };
 
         /* Public Functions */
@@ -192,6 +279,9 @@
             },
             header: function() {
                 return _buildTag(TagName.DIV, 'qz-box-head');
+            },
+            periodHeader: function() {
+                return _buildTag(TagName.DIV, 'qz-box-period');
             },
             buildToggleForDayOff: function(key) {
                 return _buildTag(TagName.SPAN, 'fa fa-toggle-'+key+' qz-toggle');
@@ -211,7 +301,7 @@
                     window.scrollTo(0, 300);
                     setTimeout(function() {
                         var options = {
-                            'helpText': Strings('timeOn'),
+                            'helpText': 'timeOn',
                             'init': TimeOn.activate,
                             'finally': TimeOn.deactivate,
                             'save': function(eDate, eTime) {
@@ -231,7 +321,7 @@
                     window.scrollTo(0, 300);
                     setTimeout(function() {
                         var options = {
-                            'helpText': Strings('mockTime'),
+                            'helpText': 'mockTime',
                             'init': MockTime.activate,
                             'finally': MockTime.deactivate,
                             'save': function(eDate, eTime) {
@@ -249,18 +339,8 @@
                 content.appendChild(addMockTime);
                 return dropdown;
             },
-            headerBeta: function() {
-                var box = _buildBox({
-                    helpText: 'config',
-                    humanTime: '',
-                    contentClass: 'fa fa-flask qz-text-golden',
-                    inlineText: true
-                });
-                box.className += ' qz-box-compact';
-                box.onclick = function() {
-                    Queiroz.beta();
-                }
-                return box;
+            buildIconOpenModal: function() {
+                return _buildTag(TagName.SPAN,'qz-fa qz-fa-se2 fa fa-external-link qz-cursor-pointer');
             },
             headerWeeklyGoal: function(weeklyGoal) {
                 return _buildBox({
@@ -299,6 +379,14 @@
                 }
                 return box;
             },
+            headerMonthLaborTime: function() {
+                return _buildBox({
+                    helpText: 'loadingMonth',
+                    humanTime: '',
+                    contentClass: 'fa fa-spinner fa-spin',
+                    inlineText: true
+                });
+            },
             balanceTimePerDay: function(balanceTime, total) {
                 return _buildBox({
                     helpText: (total ? 'totalB' : 'b') + 'alance',
@@ -312,7 +400,7 @@
                     humanTime: dailyGoal,
                     contentClass: 'qz-text-black qz-box-with-fa-se'
                 });
-                var edit = _buildTag(TagName.SPAN,'qz-fa qz-fa-se2 fa fa-edit');
+                var edit = _buildTag(TagName.SPAN,'qz-fa qz-fa-se3 fa fa-edit');
 
                 edit.onclick = function() {
                   var eDay = this.parentElement.parentElement;
@@ -322,7 +410,7 @@
                   window.scrollTo(0, 300);
                   setTimeout(function() {
                       var options = {
-                          'helpText': Strings('dailyGoal'),
+                          'helpText': 'dailyGoal',
                           'init': DailyGoal.activate,
                           'finally': DailyGoal.deactivate,
                           'save': function(eDate, eTime) {
@@ -387,7 +475,8 @@
                 return box;
             },
             buildMockTime: _buildMockTime,
-            buildHeaderMenuBox: _buildHeaderMenuBox
+            buildHeaderMenuBox: _buildHeaderMenuBox,
+            buildReportTable: _buildReportTable
         };
     }();
 
@@ -395,4 +484,4 @@
 
     Queiroz.module.snippet = Snippet;
 
-})(document, window.Queiroz);
+})(window, document, window.Queiroz);
